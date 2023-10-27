@@ -15,10 +15,10 @@ default_postgresql_host = "localhost"
 default_postgresql_port = "5432"
 
 st.set_page_config(page_title="DatAI", page_icon="icon.png", layout="wide")
-st.title("Dashboard")
+st.title("Dashboard 📊")
 st.text("Welcome to DatAI 💜 open-source tool for data science jobs.")
 
-action = st.selectbox("Choose an action", ["Connect to my database", "Upload Dataset"])
+action = st.selectbox("Choose an action", ["🔗 Connect to my database", "📤 Upload Dataset"])
 st.markdown('<hr style="border: 1px solid lightgray;">', unsafe_allow_html=True)
 
 db_placeholder = st.empty()
@@ -200,9 +200,9 @@ def db_connection_layout():
     
 
 def upload_dataset_layout():
-    uploaded_file = st.file_uploader("Upload your dataset file", type=["csv", "txt", "json"])
+    uploaded_file = st.file_uploader("Upload your dataset file please", type=["csv", "txt", "json"])
 
-if action == "Connect to my database":
+if action == "🔗 Connect to my database":
     
     db_connection_layout()
     if st.session_state.is_connected_micsql:
@@ -320,6 +320,6 @@ if action == "Connect to my database":
                     table_data_df = pd.DataFrame(data, columns=column_names)
                     st.dataframe(table_data_df)
 
-elif action == "Upload Dataset":
+elif action == "📤 Upload Dataset":
     st.write("You selected dataset")
     upload_dataset_layout()
