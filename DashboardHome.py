@@ -3,6 +3,9 @@ import mysql.connector
 import pyodbc as odbc
 import psycopg2
 import pandas as pd
+import numpy as np
+import plotly as plt
+import sklearn as sk
 import time
 
 # Initialize your database connection
@@ -44,6 +47,16 @@ if 'is_connected_pgsql' not in st.session_state:
 if 'is_connected_mysql' not in st.session_state:
     st.session_state.is_connected_mysql = False 
                
+def get_density(df):
+    non_zero_count = np.count_nonzero(df)
+    total_count = np.product(df.shape)
+
+    return non_zero_count / total_count
+
+def get_nan(df):
+    nan_count = df.isna().sum().sum()
+
+    return nan_count
 
 def init_connections_mysql(dbhost, dbport, dbuser, dbpassword, dbname):
     try:
@@ -229,7 +242,7 @@ if action == "🔗 Connect to my database":
         table_names = [table[0] for table in tables]
 
         
-        selected_table = st.selectbox("Select a table:", table_names)
+        selected_table = st.selectbox("Select a table", table_names)
 
         column_query = f"SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'{selected_table}';"
         cursor.execute(column_query)
@@ -265,7 +278,7 @@ if action == "🔗 Connect to my database":
                             success_query.empty()
                         else:
                             right_query.error("Please check and correct your SQL query.")
-
+        
 
         
         
@@ -285,7 +298,7 @@ if action == "🔗 Connect to my database":
         table_names = [table[0] for table in tables]
 
         
-        selected_table = st.selectbox("Select a table:", table_names)
+        selected_table = st.selectbox("Select a table", table_names)
 
         column_query = f"SELECT column_name FROM information_schema.columns WHERE table_name = '{selected_table}'"
         
@@ -337,7 +350,7 @@ if action == "🔗 Connect to my database":
         tables = cursor.fetchall()
         table_names = [table[0] for table in tables]
         
-        selected_table = st.selectbox("Select a table:", table_names)
+        selected_table = st.selectbox("Select a table", table_names)
 
         column_query = f"DESCRIBE {selected_table}"
         
@@ -374,6 +387,17 @@ if action == "🔗 Connect to my database":
                             success_query.empty()
                         else:
                             right_query.error("Please check and correct your SQL query.")
+
+            metric1, metric2, metric3, metric4, metric5, metric5 = st.columns(6)
+
+            if table_data:
+                metric1.metric("#Rows", value=table_data_df.shape[0])
+                metric2.metric("#Attributes", value=table_data_df.shape[1])
+                nans = get_nan(table_data_df)
+                metric3.metric("#Null values", value=nans)
+                density = get_density(table_data_df)
+                metric4.metric("Density", value=density, delta=(1-density))
+                
 
 elif action == "📤 Upload Dataset":
     st.write("You selected dataset")
