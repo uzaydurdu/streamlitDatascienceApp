@@ -89,15 +89,15 @@ def init_connections_pgsql(dbhost, dbport, dbuser, dbpassword, dbname):
             st.session_state.is_connected_pgsql = True
         else:
             st.session_state.is_connected_pgsql = True
-        
-
-       
+               
         success_conn = st.success("Database successfully connected.")
         time.sleep(2)
         success_conn.empty()  
         return connection
     except psycopg2.Error as err:
         st.error(f"Database connection error: {err}")
+
+
 
 def init_connections_micsql(server, name):
     try:
@@ -127,6 +127,15 @@ def init_connections_micsql(server, name):
         st.error(f"Database connection error: {err}")
         st.session_state.is_connected = False
         st.session_state.is_table = False
+
+def run_query(conn, query):
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        data = cursor.fetchall()
+        return data
+    except Exception as e:
+        pass
 
 def db_connection_layout():
     with db_placeholder.container():
@@ -231,7 +240,7 @@ if action == "🔗 Connect to my database":
 
         if selected_table:
             with st.expander(f"Data for Table: {selected_table}", expanded=True):
-
+                left_table, right_query = st.columns(2)
                 data_query = f"SELECT * FROM {selected_table};"
                 cursor.execute(data_query)
                 table_data = cursor.fetchall()
@@ -241,7 +250,25 @@ if action == "🔗 Connect to my database":
 
                 if table_data:
                     table_data_df = pd.DataFrame(data, columns=column_names)
-                    st.dataframe(table_data_df)
+                    left_table.dataframe(table_data_df)
+                    query = right_query.text_area("Run some SQL query here")
+                    query_btn = right_query.button("Run Query")
+
+                    if query_btn:
+                        result = run_query(conn, query)
+                        if result:
+                            with st.spinner('Query is running. Please wait...'):
+                                time.sleep(2)
+                            success_query = right_query.success("Query has been successfully run.")
+                            right_query.write(result)
+                            time.sleep(4)
+                            success_query.empty()
+                        else:
+                            right_query.error("Please check and correct your SQL query.")
+
+
+        
+        
 
     elif st.session_state.is_connected_pgsql:
         db_placeholder.empty()
@@ -270,7 +297,7 @@ if action == "🔗 Connect to my database":
 
         if selected_table:
             with st.expander(f"Data for Table: {selected_table}", expanded=True):
-
+                left_table, right_query = st.columns(2)
                 data_query = f"SELECT * FROM {selected_table};"
                 cursor.execute(data_query)
                 table_data = cursor.fetchall()
@@ -280,7 +307,21 @@ if action == "🔗 Connect to my database":
 
                 if table_data:
                     table_data_df = pd.DataFrame(data, columns=column_names)
-                    st.dataframe(table_data_df)
+                    left_table.dataframe(table_data_df)
+                    query = right_query.text_area("Run some SQL query here")
+                    query_btn = right_query.button("Run Query")
+
+                    if query_btn:
+                        result = run_query(conn, query)
+                        if result:
+                            with st.spinner('Query is running. Please wait...'):
+                                time.sleep(2)
+                            success_query = right_query.success("Query has been successfully run.")
+                            right_query.write(result)
+                            time.sleep(4)
+                            success_query.empty()
+                        else:
+                            right_query.error("Please check and correct your SQL query.")
 
     elif st.session_state.is_connected_mysql:
         db_placeholder.empty()
@@ -308,7 +349,7 @@ if action == "🔗 Connect to my database":
 
         if selected_table:
             with st.expander(f"Data for Table: {selected_table}", expanded=True):
-
+                left_table, right_query = st.columns(2)
                 data_query = f"SELECT * FROM {selected_table};"
                 cursor.execute(data_query)
                 table_data = cursor.fetchall()
@@ -318,7 +359,21 @@ if action == "🔗 Connect to my database":
 
                 if table_data:
                     table_data_df = pd.DataFrame(data, columns=column_names)
-                    st.dataframe(table_data_df)
+                    left_table.dataframe(table_data_df)
+                    query = right_query.text_area("Run some SQL query here")
+                    query_btn = right_query.button("Run Query")
+
+                    if query_btn:
+                        result = run_query(conn, query)
+                        if result:
+                            with st.spinner('Query is running. Please wait...'):
+                                time.sleep(2)
+                            success_query = right_query.success("Query has been successfully run.")
+                            right_query.write(result)
+                            time.sleep(4)
+                            success_query.empty()
+                        else:
+                            right_query.error("Please check and correct your SQL query.")
 
 elif action == "📤 Upload Dataset":
     st.write("You selected dataset")
