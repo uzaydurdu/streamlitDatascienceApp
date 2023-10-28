@@ -8,6 +8,8 @@ import plotly as plt
 import sklearn as sk
 import time
 
+from scipy.stats import shapiro
+
 # Initialize your database connection
 isMicSql = False
 isPgSql = False
@@ -388,16 +390,66 @@ if action == "🔗 Connect to my database":
                         else:
                             right_query.error("Please check and correct your SQL query.")
 
-            metric1, metric2, metric3, metric4, metric5, metric5 = st.columns(6)
+            tab_metric1, tab_metric2, tab_metric3, tab_metric4, tab_metric5, tab_metric6 = st.columns(6)
 
             if table_data:
-                metric1.metric("#Rows", value=table_data_df.shape[0])
-                metric2.metric("#Attributes", value=table_data_df.shape[1])
+                tab_metric1.metric("#Rows", value=table_data_df.shape[0])
+                tab_metric2.metric("#Attributes", value=table_data_df.shape[1])
+                tab_metric3.metric("Total Size", value=table_data_df.size)
                 nans = get_nan(table_data_df)
-                metric3.metric("#Null values", value=nans)
+                tab_metric4.metric("#Null Values", value=nans)
                 density = get_density(table_data_df)
-                metric4.metric("Density", value=density, delta=(1-density))
-                
+                tab_metric5.metric("Density", value=density, delta=(1-density))
+                tab_metric6.metric("Sparsity", value=(1-density), delta=-density)
+
+        
+
+        if column_names:
+            selected_column = st.selectbox("Select a column to check", column_names)
+            col_metric1, col_metric2, col_metric3, col_metric4, col_metric5, col_metric6 = st.columns(6)
+            col_metric1.metric("#Unique Values", value=table_data_df[selected_column].nunique())
+            col_metric2.metric("#Null Values", value=table_data_df[selected_column].isna().sum())
+            data_type =  table_data_df.dtypes[selected_column]
+            
+            if str(data_type) == 'object':
+                col_metric3.metric("Column Type", value="string")
+                numeric_value = pd.to_numeric(table_data_df[selected_column][0], errors='coerce')
+
+                if not np.isnan(numeric_value):
+                    # The value is numeric
+                    try:
+                        int_value = int(numeric_value)
+                        col_metric4.metric("Numeric", value="Yes")
+                        # Perform the Shapiro-Wilk test on the entire column
+                        stat, p = shapiro(table_data_df[selected_column].dropna())
+                        sig_threshold = 0.05
+                        if p > sig_threshold:
+                            col_metric5.metric("Data Distribution", value="Normal")
+                        else:
+                            col_metric5.metric("Data Distribution", value="Non-Normal")
+                    except ValueError:
+                        col_metric4.metric("Numeric", value="No")
+                else:
+                    # The value is not numeric
+                    col_metric4.metric("Numeric", value="No")
+            elif str(data_type) == 'int64':
+                col_metric3.metric("Column Type", value="integer")
+                stat, p = shapiro(table_data_df[selected_column])
+                sig_threshold = 0.05
+                if p > sig_threshold:
+                    col_metric4.metric("Data Distribution", value="Normal")
+                else:
+                    col_metric4.metric("Data Distribution", value="Non-Normal")
+            elif str(data_type) == 'datetime64[ns]':
+                col_metric3.metric("Column Type", value="date")
+            elif str(data_type) == 'float64':
+                col_metric3.metric("Column Type", value="float")
+            else:
+                col_metric3.metric("Column Type", value=str(data_type))
+        
+            
+
+
 
 elif action == "📤 Upload Dataset":
     st.write("You selected dataset")
