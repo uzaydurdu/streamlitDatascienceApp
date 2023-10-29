@@ -7,8 +7,9 @@ import numpy as np
 import plotly as plt
 import sklearn as sk
 import time
-
+import re
 from scipy.stats import shapiro
+from decimal import Decimal
 
 # Initialize your database connection
 isMicSql = False
@@ -410,23 +411,55 @@ if action == "🔗 Connect to my database":
             col_metric1.metric("#Unique Values", value=table_data_df[selected_column].nunique())
             col_metric2.metric("#Null Values", value=table_data_df[selected_column].isna().sum())
             data_type =  table_data_df.dtypes[selected_column]
-            
+            pattern = r'^[0-9]+$'
             if str(data_type) == 'object':
                 col_metric3.metric("Column Type", value="string")
-                numeric_value = pd.to_numeric(table_data_df[selected_column][0], errors='coerce')
-
-                if not np.isnan(numeric_value):
+                try:
+                    value = str(table_data_df[selected_column][0])
+                    value = value.replace(".", "").replace(",", "")
+                    if value.isdigit():
+                        decimal_value = Decimal(value)
+                        int_value = int(value)
+                        float_value = float(value)
+                        num_column = pd.to_numeric(table_data_df[selected_column], errors='coerce')
+                    else:
+                        decimal_value = False
+                        int_value = False
+                        float_value = False
+                    
+                except (ValueError, TypeError):
+                    pass
+                if decimal_value or int_value or float_value:
                     # The value is numeric
                     try:
-                        int_value = int(numeric_value)
                         col_metric4.metric("Numeric", value="Yes")
                         # Perform the Shapiro-Wilk test on the entire column
                         stat, p = shapiro(table_data_df[selected_column].dropna())
                         sig_threshold = 0.05
+
                         if p > sig_threshold:
                             col_metric5.metric("Data Distribution", value="Normal")
                         else:
                             col_metric5.metric("Data Distribution", value="Non-Normal")
+
+                        col_metric6.metric("Mean", value=table_data_df[selected_column].mean())
+                        col_metric1.metric("Most Frequent/Mode", value=float(table_data_df[selected_column].mode()[0]))
+                        col_metric2.metric("Median", value=table_data_df[selected_column].median())
+                        variance_value = num_column.var()
+                        formatted_variance = "{:.2f}".format(variance_value)
+                        col_metric3.metric("Variance", value=formatted_variance)
+                        std_value = num_column.std()
+                        formatted_std = "{:.2f}".format(std_value)
+                        col_metric4.metric("Variance", value=formatted_std)
+                        col_metric5.metric("Data Range", value=float(num_column.max() - num_column.min()))
+                        iqr_value = num_column.quantile(0.75) - num_column.quantile(0.25)
+                        col_metric6.metric("Interquartile Range (IQR)", value=float(iqr_value))
+                        skew_value = num_column.skew()
+                        formatted_skew = "{:.4f}".format(skew_value)
+                        col_metric1.metric("Skewness", value=formatted_skew)
+                        kurtosis_value = num_column.kurtosis()
+                        formatted_kurtosis = "{:.4f}".format(kurtosis_value)
+                        col_metric2.metric("Kurtosis", value=formatted_kurtosis)
                     except ValueError:
                         col_metric4.metric("Numeric", value="No")
                 else:
@@ -442,8 +475,20 @@ if action == "🔗 Connect to my database":
                     col_metric4.metric("Data Distribution", value="Non-Normal")
             elif str(data_type) == 'datetime64[ns]':
                 col_metric3.metric("Column Type", value="date")
+                date_col = pd.to_datetime(table_data_df[selected_column])
+                date_span = date_col.max() - date_col.min()
+
+                col_metric4.metric("Min Date", value=date_col.min())
+                col_metric5.metric("Max Date", value=date_col.max())
+                col_metric6.metric("Date Span", value=date_span)
             elif str(data_type) == 'float64':
                 col_metric3.metric("Column Type", value="float")
+                stat, p = shapiro(table_data_df[selected_column])
+                sig_threshold = 0.05
+                if p > sig_threshold:
+                    col_metric4.metric("Data Distribution", value="Normal")
+                else:
+                    col_metric4.metric("Data Distribution", value="Non-Normal")
             else:
                 col_metric3.metric("Column Type", value=str(data_type))
         
