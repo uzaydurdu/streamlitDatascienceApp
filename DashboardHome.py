@@ -9,6 +9,7 @@ import sklearn as sk
 import time
 import re
 from scipy.stats import shapiro
+from scipy import stats
 from decimal import Decimal
 
 # Initialize your database connection
@@ -406,7 +407,7 @@ if action == "🔗 Connect to my database":
         
 
         if column_names:
-            selected_column = st.selectbox("Select a column to check", column_names)
+            selected_column = st.selectbox("Select a column to see statistical inferences", column_names)
             col_metric1, col_metric2, col_metric3, col_metric4, col_metric5, col_metric6 = st.columns(6)
             col_metric1.metric("#Unique Values", value=table_data_df[selected_column].nunique())
             col_metric2.metric("#Null Values", value=table_data_df[selected_column].isna().sum())
@@ -450,7 +451,7 @@ if action == "🔗 Connect to my database":
                         col_metric3.metric("Variance", value=formatted_variance)
                         std_value = num_column.std()
                         formatted_std = "{:.2f}".format(std_value)
-                        col_metric4.metric("Variance", value=formatted_std)
+                        col_metric4.metric("Standard Deviation", value=formatted_std)
                         col_metric5.metric("Data Range", value=float(num_column.max() - num_column.min()))
                         iqr_value = num_column.quantile(0.75) - num_column.quantile(0.25)
                         col_metric6.metric("Interquartile Range (IQR)", value=float(iqr_value))
@@ -460,6 +461,15 @@ if action == "🔗 Connect to my database":
                         kurtosis_value = num_column.kurtosis()
                         formatted_kurtosis = "{:.4f}".format(kurtosis_value)
                         col_metric2.metric("Kurtosis", value=formatted_kurtosis)
+
+                        col_size = len(num_column)
+                        if col_size > 10:
+                            sample_fraction = 0.2
+                            sample_size = int(col_size * sample_fraction)
+                            random_sample = num_column.sample(n=sample_size)
+                            confidence_interval = stats.norm.interval(0.95, loc=random_sample.mean(), scale=random_sample.std()/np.sqrt(len(random_sample)))
+                            col_metric3.metric("Confidence Interval Lower", value=f'{confidence_interval[0]:.2f}')
+                            col_metric4.metric("Confidence Interval Upper", value=f'{confidence_interval[1]:.2f}')
                     except ValueError:
                         col_metric4.metric("Numeric", value="No")
                 else:
@@ -473,6 +483,34 @@ if action == "🔗 Connect to my database":
                     col_metric4.metric("Data Distribution", value="Normal")
                 else:
                     col_metric4.metric("Data Distribution", value="Non-Normal")
+
+                col_metric5.metric("Mean", value=table_data_df[selected_column].mean())
+                col_metric6.metric("Most Frequent/Mode", value=float(table_data_df[selected_column].mode()[0]))
+                col_metric1.metric("Median", value=table_data_df[selected_column].median())
+                variance_value = table_data_df[selected_column].var()
+                formatted_variance = "{:.2f}".format(variance_value)
+                col_metric2.metric("Variance", value=formatted_variance)
+                std_value = table_data_df[selected_column].std()
+                formatted_std = "{:.2f}".format(std_value)
+                col_metric3.metric("Standard Deviation", value=formatted_std)
+                col_metric4.metric("Data Range", value=float(table_data_df[selected_column].max() - table_data_df[selected_column].min()))
+                iqr_value = table_data_df[selected_column].quantile(0.75) - table_data_df[selected_column].quantile(0.25)
+                col_metric5.metric("Interquartile Range (IQR)", value=float(iqr_value))
+                skew_value = table_data_df[selected_column].skew()
+                formatted_skew = "{:.4f}".format(skew_value)
+                col_metric6.metric("Skewness", value=formatted_skew)
+                kurtosis_value = table_data_df[selected_column].kurtosis()
+                formatted_kurtosis = "{:.4f}".format(kurtosis_value)
+                col_metric1.metric("Kurtosis", value=formatted_kurtosis)
+
+                col_size = len(table_data_df[selected_column])
+                if col_size > 10:
+                    sample_fraction = 0.2
+                    sample_size = int(col_size * sample_fraction)
+                    random_sample = table_data_df[selected_column].sample(n=sample_size)
+                    confidence_interval = stats.norm.interval(0.95, loc=random_sample.mean(), scale=random_sample.std()/np.sqrt(len(random_sample)))
+                    col_metric2.metric("Confidence Interval Lower", value=f'{confidence_interval[0]:.2f}')
+                    col_metric3.metric("Confidence Interval Upper", value=f'{confidence_interval[1]:.2f}')
             elif str(data_type) == 'datetime64[ns]':
                 col_metric3.metric("Column Type", value="date")
                 date_col = pd.to_datetime(table_data_df[selected_column])
